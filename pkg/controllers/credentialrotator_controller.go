@@ -22,8 +22,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-logr/logr"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +32,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/IBM/platform-services-go-sdk/resourcecontrollerv2"
@@ -45,7 +44,6 @@ import (
 // CredentialRotatorReconciler reconciles a CredentialRotator object
 type CredentialRotatorReconciler struct {
 	client.Client
-	Log      logr.Logger
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
 }
@@ -72,37 +70,36 @@ type CredentialRotatorReconciler struct {
 // Kubernetes secret which an application uses to access the backend service.
 // After creating the new key, the app instances will be restarted to load the
 // new credentials. The previous resource key will then be deleted.
-// This is implemented as a state mmachine pattern.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
 func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("namespace", req.NamespacedName, "credentialrotator", req.Name)
+	logger := ctrllog.FromContext(ctx)
 	logger.Info("== Reconciling CredentialRotator")
 
 	// Fetch the CredentialRotator instance
 	instance := &securityv1alpha1.CredentialRotator{}
-	err := r.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request - return and don't requeue:
 			return r.doNotRequeue()
 		}
-		// Error reading the object - requeue the request:
+		// Error reading the object - requeue the request
 		return r.requeueOnErr(err)
 	}
 
-	// If no phase set, default to pending (the initial phase):
+	// If no phase set, default to pending (the initial phase)
 	if instance.Status.Phase == "" {
 		instance.Status.Phase = securityv1alpha1.PhasePending
 	}
 
-	// The state diagram:
+	// The different operations are broken down into phases:
 	// PENDING -> CREATING -> NOTIFYING -> DELETING -> DONE
-	// Each state separates functionality of:
+	// A phase seperates operations as follows :
 	// 1. Creating resource key and creating/updating secret to store credentials
 	// 2. Notifying app PODs of change to credentials by restarting them
-	// 3. Delete previous resource key which is replaced with newly created key
+	// 3. Deleting previous resource key which is replaced with newly created key
 	switch instance.Status.Phase {
 
 	case securityv1alpha1.PhasePending:
@@ -134,9 +131,9 @@ func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Otherwise create secret adding the resource key created.
 		secret := newSecretObject(*resourceKey.ID, *resourceKey.Credentials.Apikey, instance.Spec.ServiceURL, instance.Spec.AppNameSpace)
 		found := &corev1.Secret{}
-		err = r.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, found)
+		err = r.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) { //Create secret
-			err = r.Create(context.TODO(), secret)
+			err = r.Create(ctx, secret)
 			if err != nil {
 				// Error creating secret. Wait until it is fixed.
 				return r.requeueOnErr(err)
@@ -148,7 +145,7 @@ func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		} else { //Update secret
 			instance.Status.PreviousResourceKeyID = string(found.Data["resourceKeyID"])
 			updateSecretObject(found, resourceKey)
-			err = r.Update(context.TODO(), found)
+			err = r.Update(ctx, found)
 			if err != nil {
 				// Error updating secret. Wait until it is fixed.
 				return r.requeueOnErr(err)
@@ -162,7 +159,7 @@ func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		r.Recorder.Event(instance, "Normal", "PhaseChange", securityv1alpha1.PhaseNotifying)
 
 		found := &appsv1.Deployment{}
-		err = r.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.AppName, Namespace: instance.Spec.AppNameSpace}, found)
+		err = r.Get(ctx, types.NamespacedName{Name: instance.Spec.AppName, Namespace: instance.Spec.AppNameSpace}, found)
 		if err != nil && errors.IsNotFound(err) { //Create secret
 			logger.Info("No Deployment found", "Deployment", instance.Spec.AppName,
 				"Namespace", instance.Spec.AppNameSpace)
@@ -170,7 +167,7 @@ func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return r.requeueOnErr(err)
 		} else { //Restart
 			patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"labels":{"credentials-rotator-redeloyed":"%v"}}}}}`, time.Now().Unix()))
-			err = r.Patch(context.TODO(), found, client.RawPatch(types.StrategicMergePatchType, patch))
+			err = r.Patch(ctx, found, client.RawPatch(types.StrategicMergePatchType, patch))
 			if err != nil {
 				// Error updating deployment. Wait until it is fixed.
 				return r.requeueOnErr(err)
@@ -214,13 +211,13 @@ func (r *CredentialRotatorReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return r.doNotRequeue()
 	}
 
-	// Update the CredentialRotator instance, setting the status to the respective phase:
-	err = r.Status().Update(context.TODO(), instance)
+	// Update the CredentialRotator instance, setting the status to the respective phase
+	err = r.Status().Update(ctx, instance)
 	if err != nil {
 		return r.requeueOnErr(err)
 	}
 
-	return r.doNotRequeue()
+	return r.requeue()
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -269,9 +266,14 @@ func updateSecretObject(secret *corev1.Secret, resourceKey *resourcecontrollerv2
 	secret.ObjectMeta.Labels["modifiedAt"] = strconv.Itoa(int(time.Now().Unix()))
 }
 
-// doNotRequeue Finished processing this event. Not need to put back on the reconcile queue.
+// doNotRequeue Finished processing. No need to put back on the reconcile queue.
 func (r *CredentialRotatorReconciler) doNotRequeue() (reconcile.Result, error) {
 	return ctrl.Result{}, nil
+}
+
+// requeue Not finished processing. Put back on reconcile queue and continue.
+func (r *CredentialRotatorReconciler) requeue() (reconcile.Result, error) {
+	return ctrl.Result{Requeue: true}, nil
 }
 
 // requeueOnErr Failed while processing. Put back on reconcile queue and try again.
