@@ -80,7 +80,6 @@ func main() {
 
 	if err = (&controllers.CredentialRotatorReconciler{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("CredentialRotator"),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("credential-rotator"),
 	}).SetupWithManager(mgr); err != nil {
