@@ -1,4 +1,4 @@
-module github.com/hickeyma/credential-rotator-operator
+module github.com/IBM/credential-rotator-operator
 
 go 1.16
 
