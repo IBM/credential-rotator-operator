@@ -37,8 +37,8 @@ import (
 
 	"github.com/IBM/platform-services-go-sdk/resourcecontrollerv2"
 
-	securityv1alpha1 "github.com/hickeyma/credential-rotator-operator/api/v1alpha1"
-	"github.com/hickeyma/credential-rotator-operator/pkg/ibmcloudclient"
+	securityv1alpha1 "github.com/IBM/credential-rotator-operator/api/v1alpha1"
+	"github.com/IBM/credential-rotator-operator/pkg/ibmcloudclient"
 )
 
 // CredentialRotatorReconciler reconciles a CredentialRotator object

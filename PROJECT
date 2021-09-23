@@ -5,7 +5,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: credential-rotator-operator
-repo: github.com/hickeyma/credential-rotator-operator
+repo: github.com/IBM/credential-rotator-operator
 resources:
 - api:
     crdVersion: v1
@@ -14,6 +14,6 @@ resources:
   domain: example.com
   group: security
   kind: CredentialRotator
-  path: github.com/hickeyma/credential-rotator-operator/api/v1alpha1
+  path: github.com/IBM/credential-rotator-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

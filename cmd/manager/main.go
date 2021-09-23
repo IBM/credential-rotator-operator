@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	securityv1alpha1 "github.com/hickeyma/credential-rotator-operator/api/v1alpha1"
-	"github.com/hickeyma/credential-rotator-operator/pkg/controllers"
+	securityv1alpha1 "github.com/IBM/credential-rotator-operator/api/v1alpha1"
+	"github.com/IBM/credential-rotator-operator/pkg/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
