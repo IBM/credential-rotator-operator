@@ -13,10 +13,10 @@ The credential rotator operator was scaffolded via the [Operator SDK](https://sd
 
 ### Prerequisites
 
-- [Go](https://golang.org/dl/) 1.15.6+
+- [Go](https://golang.org/dl/) 1.16+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - Image registry and client, for example [Docker](https://docs.docker.com/get-started/overview/), [Quay](Quay.io) or like
-- Kubernetes cluster, for example [minikube](https://minikube.sigs.k8s.io/docs/), [kind](https://kind.sigs.k8s.io), [IKS](https://cloud.ibm.com/docs/containers?topic=containers-getting-started) or like
+- Kubernetes cluster 1.16+, for example [minikube](https://minikube.sigs.k8s.io/docs/), [kind](https://kind.sigs.k8s.io), [IKS](https://cloud.ibm.com/docs/containers?topic=containers-getting-started) or like
 - [IBM Cloud account](https://www.ibm.com/cloud)
 
 ### Steps
