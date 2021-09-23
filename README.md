@@ -74,7 +74,7 @@ Now you are ready to compile, build the image of the operator, and push the imag
 To compile the code, run the following command in the terminal from your project root:
 
 ```bash
-$ make install
+$ make
 ```
 
 #### Build and push image
@@ -111,7 +111,7 @@ $ make docker-push IMG=$IMG
 
     ```bash
     ../go/src/github.com/IBM/credential-rotator-operator/bin/controller-gen "crd:trivialVersions=true,preserveUnknownFields=false" rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-    cd config/manager && ../go/src/github.com/IBM/credential-rotator-operator/bin/kustomize edit set image controller=docker.io/xxx/iam-credential-rotator-operator:latest
+    cd config/manager && ../go/src/github.com/IBM/credential-rotator-operator/bin/kustomize edit set image controller=docker.io/xxx/credential-rotator-operator:latest
     ../go/src/github.com/IBM/credential-rotator-operator/bin/kustomize build config/default | kubectl apply -f -
     namespace/credential-rotator-operator-system created
     customresourcedefinition.apiextensions.k8s.io/credentialrotators.security.example.com configured
